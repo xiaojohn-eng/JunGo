@@ -1,0 +1,22 @@
+[Unit]
+Description=JunGo private control, encrypted relay and STUN
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=jungo
+Group=jungo
+UMask=0077
+StateDirectory=jungo-control
+ExecStart=/usr/local/bin/jungo serve --state /var/lib/jungo-control --listen :9443 --stun :3478
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/jungo-control
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

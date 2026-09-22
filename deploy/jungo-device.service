@@ -1,0 +1,19 @@
+[Unit]
+Description=JunGo private device and shared files
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=jungo
+Group=jungo
+UMask=0077
+StateDirectory=jungo-device
+ExecStart=/usr/local/bin/jungo agent --state /var/lib/jungo-device --local-api
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

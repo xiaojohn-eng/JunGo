@@ -1,0 +1,4 @@
+# Preserve upstream formatting in the reproducible dependency copy.
+third_party/mihomo/** -whitespace linguist-vendored
+# Preserve verbatim third-party license notices.
+licenses/** -whitespace linguist-vendored
