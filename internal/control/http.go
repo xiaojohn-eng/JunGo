@@ -78,6 +78,25 @@ func NewHandler(store *Store, cfg Config) (http.Handler, error) {
 		}
 		writeJSON(w, http.StatusOK, d)
 	})
+	mux.HandleFunc("POST /v1/device/name", func(w http.ResponseWriter, r *http.Request) {
+		token := BearerToken(r)
+		if _, err := store.Authenticate(token); err != nil {
+			apiError(w, err)
+			return
+		}
+		var req struct {
+			Name string `json:"name"`
+		}
+		if !decodeJSON(w, r, &req) {
+			return
+		}
+		d, err := store.RenameDevice(token, req.Name)
+		if err != nil {
+			apiError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, d)
+	})
 	mux.HandleFunc("GET /v1/peers", func(w http.ResponseWriter, r *http.Request) {
 		peers, err := store.Peers(BearerToken(r))
 		if err != nil {

@@ -11,6 +11,8 @@ android/app/libs/*.aar
 android/app/libs/jungo-sources.jar
 android/app/libs/.jungo-build.*/
 *.log
+__pycache__/
+*.pyc
 .DS_Store
 *.key
 *.p12

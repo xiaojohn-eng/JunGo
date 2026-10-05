@@ -1,11 +1,6 @@
 package openvpn
 
-import (
-	"bytes"
-	"errors"
-
-	"github.com/rasky/go-lzo"
-)
+import "errors"
 
 const (
 	lzoCompressNone = 0xFA // not compressed
@@ -28,15 +23,9 @@ func lzo1xDecompressSafe(src []byte) ([]byte, error) {
 		}
 		return nil, nil
 	case lzoCompressLZO:
-		if len(src) > 1 {
-			r := bytes.NewReader(src[1:])
-			out, err := lzo.Decompress1X(r, len(src)-1, 0)
-			if err != nil {
-				return nil, ErrLZODecompress
-			}
-			return out, nil
-		}
-		return nil, nil
+		// LZO decoding is deliberately unavailable. A config requesting it is
+		// rejected by Prepare, and an unexpected compressed packet fails closed.
+		return nil, ErrLZODecompress
 	default:
 		return nil, ErrLZODecompress
 	}

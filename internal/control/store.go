@@ -21,6 +21,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
+	"unicode/utf8"
 )
 
 var (
@@ -358,6 +360,45 @@ func (s *Store) Authenticate(token string) (Device, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.authenticateLocked(token)
+}
+
+// RenameDevice changes only the authenticated device's display name. Its stable
+// hostname, address and cryptographic identity are never derived again.
+func (s *Store) RenameDevice(token, name string) (Device, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	d, err := s.authenticateLocked(token)
+	if err != nil {
+		return Device{}, err
+	}
+	if !validRenameName(name) {
+		return Device{}, fmt.Errorf("%w: name must be 1-128 UTF-8 bytes without surrounding or control whitespace", ErrInvalid)
+	}
+	if d.Name == name {
+		return d, nil
+	}
+	d.Name = name
+	n := s.snapshot()
+	saved := n.Devices[d.ID]
+	saved.Device = d
+	n.Devices[d.ID] = saved
+	if err := s.commit(n); err != nil {
+		return Device{}, err
+	}
+	s.notifyLocked(Event{Type: "peers-changed", DeviceID: d.ID})
+	return copyDevice(d), nil
+}
+
+func validRenameName(name string) bool {
+	if name == "" || len(name) > 128 || !utf8.ValidString(name) || strings.TrimSpace(name) != name {
+		return false
+	}
+	for _, r := range name {
+		if unicode.Is(unicode.C, r) || (unicode.IsSpace(r) && r != ' ') {
+			return false
+		}
+	}
+	return true
 }
 
 func (s *Store) Peers(token string) ([]Device, error) {

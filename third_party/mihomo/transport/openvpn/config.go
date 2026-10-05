@@ -216,12 +216,7 @@ func normalizeAuth(auth string) string {
 }
 
 func normalizeCompLZO(compLZO string) string {
-	switch strings.ToLower(strings.TrimSpace(compLZO)) {
-	case "yes", "adaptive":
-		return CompLzoYes
-	default:
-		return strings.ToLower(strings.TrimSpace(compLZO))
-	}
+	return strings.ToLower(strings.TrimSpace(compLZO))
 }
 
 func (c *ClientConfig) Prepare() error {
@@ -284,6 +279,13 @@ func (c *ClientConfig) ValidateInstallScriptSubset() error {
 	}
 	if c.Auth != AuthMD5 && c.Auth != AuthSHA1 && c.Auth != AuthSHA256 && c.Auth != AuthSHA384 && c.Auth != AuthSHA512 {
 		return fmt.Errorf("unsupported openvpn auth %q: only %s, %s, %s, %s and %s are supported", c.Auth, AuthMD5, AuthSHA1, AuthSHA256, AuthSHA384, AuthSHA512)
+	}
+	switch normalizeCompLZO(c.CompLZO) {
+	case "", "no":
+	case "yes", "adaptive":
+		return fmt.Errorf("unsupported openvpn comp-lzo %q: LZO compression is unavailable in this build", c.CompLZO)
+	default:
+		return fmt.Errorf("unsupported openvpn comp-lzo %q: only no or an omitted value is supported", c.CompLZO)
 	}
 	if c.KeyDirection != "1" && c.KeyDirection != "0" && c.KeyDirection != "" {
 		return fmt.Errorf("unsupported openvpn key-direction %q: only '1' and '0' are supported", c.KeyDirection)

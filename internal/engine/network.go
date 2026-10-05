@@ -151,7 +151,11 @@ func (e *Engine) startMesh() error {
 			client.CloseIdleConnections()
 		}
 	}()
-	if err = apiDo(e.ctx, client, c.Server, c.Token, "GET", "/v1/device", nil, nil); err != nil {
+	var self control.Device
+	if err = apiDo(e.ctx, client, c.Server, c.Token, "GET", "/v1/device", nil, &self); err != nil {
+		return err
+	}
+	if c, err = e.syncDeviceName(c, self); err != nil {
 		return err
 	}
 	tlsConfig, err := secure.PinnedTLS(c.Fingerprint)
@@ -204,6 +208,23 @@ func (e *Engine) startMesh() error {
 	e.wakeTransfers()
 	return nil
 }
+
+// syncDeviceName runs under e.op. The controller owns the display name, while
+// the local state retains its existing identity, keys, shares and preferences.
+func (e *Engine) syncDeviceName(c Config, remote control.Device) (Config, error) {
+	if remote.ID == "" || remote.ID != c.Device.ID || remote.Name == "" {
+		return c, errors.New("控制服务返回的设备身份或名称无效")
+	}
+	if c.Device.Name == remote.Name {
+		return c, nil
+	}
+	c.Device.Name = remote.Name
+	if err := e.commit(c); err != nil {
+		return c, err
+	}
+	return c, nil
+}
+
 func (e *Engine) stopMesh() {
 	e.mu.Lock()
 	cancel, done, node, server, service := e.sessionCancel, e.sessionDone, e.node, e.fileServer, e.fileService
@@ -277,7 +298,7 @@ func (e *Engine) sessionLoop(ctx context.Context, c Config, node *mesh.Node, cli
 		}
 	}
 	var sessionError uint64
-	heartbeatHealthy, peersHealthy := false, false
+	heartbeatHealthy, peersHealthy, selfHealthy := false, false, true
 	reportFailure := func(err error) {
 		e.mu.Lock()
 		defer e.mu.Unlock()
@@ -286,7 +307,7 @@ func (e *Engine) sessionLoop(ctx context.Context, c Config, node *mesh.Node, cli
 		}
 	}
 	recovered := func() {
-		if heartbeatHealthy && peersHealthy {
+		if heartbeatHealthy && peersHealthy && selfHealthy {
 			e.clearErrorIfCurrent(sessionError)
 		}
 	}
@@ -313,6 +334,8 @@ func (e *Engine) sessionLoop(ctx context.Context, c Config, node *mesh.Node, cli
 	heart := time.NewTicker(10 * time.Second)
 	defer heart.Stop()
 	lastSync := time.Now()
+	// startMesh already fetched this device from the controller.
+	lastSelfSync := lastSync
 	expire := func() {
 		e.mu.Lock()
 		if e.node != node {
@@ -379,6 +402,30 @@ func (e *Engine) sessionLoop(ctx context.Context, c Config, node *mesh.Node, cli
 			}
 			lastSync = time.Now()
 			peersHealthy = true
+			if time.Since(lastSelfSync) >= 30*time.Second {
+				var self control.Device
+				selfErr := apiDo(ctx, client, c.Server, c.Token, "GET", "/v1/device", nil, &self)
+				synced := false
+				if selfErr == nil && e.op.TryLock() {
+					e.mu.RLock()
+					currentNode := e.node == node
+					e.mu.RUnlock()
+					if currentNode {
+						_, selfErr = e.syncDeviceName(e.config(), self)
+						synced = true
+						if selfErr == nil {
+							lastSelfSync = time.Now()
+						}
+					}
+					e.op.Unlock()
+				}
+				if selfErr != nil {
+					selfHealthy = false
+					reportFailure(selfErr)
+				} else if synced {
+					selfHealthy = true
+				}
+			}
 			next := make(map[string]control.Device, len(response.Peers))
 			e.mu.RLock()
 			old := e.peers

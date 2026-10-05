@@ -2,7 +2,7 @@
 
 面向个人设备的 Android 代理、私有组网、设备聊天和文件传输客户端，配套 macOS 菜单栏程序、Linux 设备服务、自托管控制与加密数据中继。
 
-当前为 **0.2.2-performance-preview 开发预览版**，面向自己的多台设备，不提供公共社交、群聊或多用户账号。源码以 GPL-3.0-only 开源，第三方组件保留原许可证。
+当前为 **0.2.3-preview 预览版**，面向自己的多台设备，不提供公共社交、群聊或多用户账号。源码以 GPL-3.0-only 开源，第三方组件保留原许可证。
 
 本公开仓库由经过检查的源码快照建立，不包含开发环境历史、实机截图、个人配置、订阅、密钥或部署日志。安全说明见 [SECURITY.md](SECURITY.md) 和 [发布扫描说明](docs/publication-security.md)，测试与限制见 [验证说明](docs/validation.md)。
 
@@ -22,6 +22,10 @@
 
 Android 12+，支持折叠屏内外屏、窗口缩放和大字体。布局根据实际窗口与折叠特征切换。Mac 端是菜单栏程序，不包含 iPhone 或 iPad 客户端。
 
+## 下载与安装
+
+在 [GitHub Releases](https://github.com/xiaojohn-eng/JunGo/releases) 下载与你的设备匹配的预览包：Android 12+ / arm64 的 APK、Apple Silicon Mac 的 DMG 或 ZIP、Linux amd64 / arm64 的压缩包。安装步骤、服务器部署、配对和平台限制见 [下载与部署指南](docs/download-install.md)。包内包含对应程序和运行所需资源；源码归档与校验清单在同一 Release 中。首次使用仍需自己的控制服务器与各设备独立的一次性配对码。
+
 ## 构建
 
 需要 Python 3.12 或更新版本运行 bootstrap（归档安全解压使用 `filter` 参数）。已验证的其他工具链：Go 1.27.1、JDK 21、Android SDK 36 / Build Tools 36.0.0 / NDK 28.2.13676358、Swift 6.3.3。工具放在项目 `.tools/`，不用修改系统 Go/JDK。
@@ -40,13 +44,13 @@ export GOPROXY=https://goproxy.cn,direct
 GOBIN="$PWD/.tools/bin" go install golang.org/x/mobile/cmd/gomobile@v0.0.0-20260908204917-8b95e45f8d3e
 GOBIN="$PWD/.tools/bin" go install golang.org/x/mobile/cmd/gobind@v0.0.0-20260908204917-8b95e45f8d3e
 sh scripts/build-core.sh
-sh scripts/build-android-core.sh
+JUNGO_RELEASE_SANITIZE=1 sh scripts/build-android-core.sh
 JAVA_HOME="$PWD/.tools/jdk" ANDROID_HOME="$PWD/.tools/android-sdk" \
   android/gradlew -p android -PpreviewSigning=true :app:assembleRelease :app:testReleaseUnitTest :app:lintRelease
 sh scripts/build-macos.sh
 ```
 
-精简后的 APK 在 `android/app/build/outputs/apk/release/app-release.apk`。`-PpreviewSigning=true` 明确使用本机测试签名，以便覆盖已有预览版并保留数据；不传该参数时 release 保持未签名，正式发布需配置发布密钥。开发调试仍可使用 `:app:assembleDebug`。Mac 本地安装包使用 ad-hoc 签名，未公证。个人测试包不等同于应用商店发布包。Linux 分别生成 amd64 和 arm64 二进制；Mac 包当前面向 Apple Silicon。
+精简后的 APK 在 `android/app/build/outputs/apk/release/app-release.apk`。`-PpreviewSigning=true` 明确使用本机预览签名；仅能覆盖由同一证书签名的旧预览版并保留数据。不传该参数时 release 保持未签名。开发调试仍可使用 `:app:assembleDebug`。Mac 包使用 ad-hoc 签名，未经过 Apple 公证，首次打开需按 [安装指南](docs/download-install.md) 在系统设置中确认。Linux 分别生成 amd64 和 arm64 二进制；Mac 包当前面向 Apple Silicon。
 
 ## 首次使用
 
@@ -83,6 +87,6 @@ JunGo 自有代码采用 [GNU GPL v3](LICENSE)（SPDX: GPL-3.0-only）。底层�
 
 ## 公开发布范围
 
-本次发布源码，未附带安装包。依赖中的 go-lzo 许可范围仍需上游澄清，详情见 [第三方声明](THIRD_PARTY_NOTICES.md)。不要据此将现有安装包视为已完成全部再分发许可核验。
+预览版 Release 提供安装包、完整源码归档和 SHA-256 校验清单。曾引起二进制再分发冲突的 `go-lzo` 已从构建依赖移除；OpenVPN 的 `comp-lzo: yes/adaptive` 会明确拒绝，详见 [第三方声明](THIRD_PARTY_NOTICES.md)。安装包不含服务器地址、配对码、个人配置或运行数据。
 
-提交经过审查的变更后，可运行 `python3 scripts/package-release.py --source-only` 生成只包含当前 Git HEAD 的源码归档。构建缓存、运行数据和未跟踪文件不会被收进归档；脚本遇到已提交的敏感文件路径会拒绝打包。
+`python3 scripts/package-release.py --source-only` 只归档当前 Git HEAD 的源码；`--all` 打包经验证的各平台二进制、许可证及部署资源。构建缓存、运行数据和未跟踪文件不会进入源码归档；脚本遇到已提交的敏感文件路径会拒绝打包。

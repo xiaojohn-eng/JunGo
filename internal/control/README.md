@@ -12,6 +12,7 @@ codes and device public keys must never be logged. Private keys stay on devices.
 | POST `/v1/pairing-codes` | admin bearer | `PairingCode` (10 minute default TTL) |
 | POST `/v1/enroll` | single-use code | `Enrollment` → `EnrollmentResult` |
 | GET `/v1/device` | device bearer | current `Device` |
+| POST `/v1/device/name` | device bearer | `{ "name": string }` → updated own `Device` |
 | GET `/v1/peers` | device bearer | `{ "peers": [Device] }` (excludes self and revoked) |
 | GET `/v1/events` | device bearer | SSE `ready`, `peers-changed`, `revoked`, `heartbeat` |
 | GET `/v1/devices` | admin bearer | `{ "devices": [Device] }` (includes revoked) |
@@ -39,6 +40,12 @@ Topology changes and return from offline trigger immediate invalidations; client
 still refresh authorization and peer liveness every 5 seconds as a fallback. Device private addresses
 are allocated once from `100.96.0.0/16`, starting at `.2`; retired addresses are
 never reused. Each installation currently contains one `default` mesh.
+
+Device rename accepts 1–128 UTF-8 bytes with no surrounding whitespace,
+control or formatting characters; ordinary spaces inside the name are allowed.
+It changes only the authenticated device's display name, leaving its stable
+hostname, IP address, public key and token unchanged. A committed change sends
+`peers-changed` so other devices can refresh their peer lists.
 
 Enrollment and revocation commit to disk before success. Only SHA-256 hashes of
 random pairing codes and bearer tokens are persisted. Pairing codes are random

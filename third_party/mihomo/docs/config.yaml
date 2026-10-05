@@ -1447,7 +1447,7 @@ proxies: # socks5
     # data-ciphers: [AES-256-GCM, AES-128-GCM] # 数据通道 cipher 协商列表，发送 IV_CIPHERS 给服务端；服务端 push 的 cipher 列表与本地列表取交集，取第一个匹配项
     # data-ciphers-fallback: AES-128-CBC # 协商失败时的回退 cipher（对应 --data-ciphers-fallback）
     # auth: SHA256 # 支持 MD5 / SHA1 / SHA256 / SHA384 / SHA512，默认 SHA256；AEAD cipher 会忽略 auth
-    # comp-lzo: "no" # 可选值："yes", "no", "adaptive"
+    # comp-lzo: "no" # 本发行版只支持 "no"；LZO 压缩已移除
     # username / password: auth-user-pass 模式（与下方 cert+key 二选一，不能都不填）
     # username: "user"
     # password: "pass"

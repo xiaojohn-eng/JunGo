@@ -5,15 +5,18 @@
 
 ## 构建
 
-先按根项目说明生成真实 Go JNI 库，放到 `app/libs/jungo.aar`。随后在仓库根目录运行：
+先按根项目说明生成真实 Go JNI 库，放到 `app/libs/jungo.aar`。公开预览包应从干净的 Git HEAD 运行
+`JUNGO_RELEASE_SANITIZE=1 sh scripts/build-android-core.sh`，避免把编译机器的本地路径写进原生库。
+随后在仓库根目录运行：
 
 ```sh
 JAVA_HOME="$PWD/.tools/jdk" ANDROID_HOME="$PWD/.tools/android-sdk" \
   android/gradlew -p android :app:assembleDebug :app:lintDebug :app:testDebugUnitTest
 ```
 
-APK：`app/build/outputs/apk/debug/app-debug.apk`。Debug 签名只用于个人设备测试；
-发布签名需独立管理，不把 keystore 或密码写入仓库。Gradle wrapper 校验分发包 SHA-256。
+APK：`app/build/outputs/apk/debug/app-debug.apk`。GitHub 的预览 APK 使用本机预览签名，
+仅能覆盖同一证书签名的旧包；正式发布签名需独立管理，不把 keystore 或密码写入仓库。
+Gradle wrapper 校验分发包 SHA-256。
 `coreApiCheck` 仅用于 native AAR 生成前检查 API 签名，明确禁止打包 APK；不是可运行构建。
 
 ## 原生桥接与生命周期

@@ -61,6 +61,8 @@ JSON
 
 停止组网：`{"method":"network","params":{"mesh":false}}`。按 ID 删除共享：`{"method":"shareRemove","params":{"id":"SHARE_ID"}}`。撤销设备通过控制服务管理接口或 Mac 配对管理页执行；已注册设备的普通 token 没有管理权限。
 
+已配对的 Mac 可在“设备”中修改自身显示名称；本地 RPC 也可调用 `{"method":"renameDevice","params":{"name":"工作 Mac"}}`。控制服务必须支持 `POST /v1/device/name`；先更新控制服务，再更新 Mac 客户端。重命名保留设备身份、私网 IP 与稳定主机名，其他设备同步列表后显示新名称。
+
 Linux systemd 模板见 `deploy/jungo-device.service`。该模板未强制 ReadOnlyPaths / ProtectHome，以便访问你明确选择的目录；可以按实际共享路径进一步限制。默认没有开机自动启动手机 VPN，也不会替用户修改 Mac 登录项。
 
 ## 更新与恢复

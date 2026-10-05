@@ -700,13 +700,6 @@
     ]
   },
   {
-    "module": "github.com/rasky/go-lzo",
-    "version": "v0.0.0-20200203143853-96a758eda86e",
-    "notices": [
-      "97468179bc4c-LICENSE.gpl"
-    ]
-  },
-  {
     "module": "github.com/safchain/ethtool",
     "version": "v0.3.0",
     "notices": [

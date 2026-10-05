@@ -40,7 +40,7 @@ func run(args []string) error {
 	}
 	switch args[0] {
 	case "version":
-		fmt.Println("JunGo v0.2.2-performance-preview")
+		fmt.Println("JunGo v0.2.3-preview")
 		return nil
 	case "serve":
 		return serve(args[1:])

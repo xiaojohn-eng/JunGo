@@ -21,6 +21,10 @@ Only these upstream implementation changes have been made:
    reads from old proxy cleanup. The original race was reproduced between
    `executor.ApplyConfig -> log.SetLevel` and adapter finalizer logging during
    repeated VPN startup.
+3. `transport/openvpn/lzo.go`, `config.go` and tests: remove the GPLv2-only
+   `github.com/rasky/go-lzo` dependency from the distributable build. Reject
+   `comp-lzo: yes/adaptive` at config preparation and reject unexpected LZO
+   compressed packets; uncompressed OpenVPN connections remain supported.
 
 Validation from the repository root:
 

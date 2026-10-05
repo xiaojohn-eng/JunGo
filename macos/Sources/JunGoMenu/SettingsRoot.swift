@@ -42,6 +42,7 @@ struct SettingsRoot: View {
 struct DevicesSettings: View {
     @EnvironmentObject var store: AppStore
     @State private var revoking: Peer?
+    @State private var editingName = false
 
     var body: some View {
         ScrollView {
@@ -60,6 +61,8 @@ struct DevicesSettings: View {
                         }
                         Spacer()
                         if store.state.paired {
+                            Button("修改名称…") { editingName = true }
+                                .disabled(store.busy || !store.backendAvailable)
                             Toggle("私有组网", isOn: Binding(get: { store.state.meshEnabled }, set: { value in Task { await store.setMesh(value) } }))
                                 .toggleStyle(.switch).fixedSize().disabled(store.busy || !store.backendAvailable)
                         } else {
@@ -113,6 +116,34 @@ struct DevicesSettings: View {
                 revoking = nil
             }
         } message: { Text("\(revoking?.name ?? "此设备") 将失去组网和共享文件的访问权限。重新接入需要新的配对码。") }
+        .sheet(isPresented: $editingName) { RenameDeviceSheet().environmentObject(store) }
+    }
+}
+
+private struct RenameDeviceSheet: View {
+    @EnvironmentObject var store: AppStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var name = ""
+
+    private var proposedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text("修改这台 Mac 的名称").font(.title2.weight(.semibold))
+            Text("新名称会显示在其他已配对设备上。").font(.callout).foregroundStyle(.secondary)
+            TextField("设备名称", text: $name)
+            if let error = store.operationError { ErrorBanner(message: error) }
+            HStack {
+                Spacer()
+                Button("取消") { dismiss() }.keyboardShortcut(.cancelAction)
+                Button("保存名称") {
+                    Task { if await store.renameDevice(proposedName) { dismiss() } }
+                }.buttonStyle(.borderedProminent).keyboardShortcut(.defaultAction)
+                    .disabled(store.busy || !store.backendAvailable || proposedName.isEmpty || proposedName.lengthOfBytes(using: .utf8) > 128 || proposedName == store.state.device.name)
+            }
+        }
+        .padding(25).frame(width: 430)
+        .onAppear { name = store.state.device.name; store.operationError = nil }
     }
 }
 

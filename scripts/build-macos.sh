@@ -32,8 +32,18 @@ case " $agent_architectures " in
   *) echo "后台架构（$agent_architectures）与当前 Mac（$(uname -m)）不匹配。" >&2; exit 1 ;;
 esac
 
-swift build --package-path "$project_root/macos" --configuration "$build_configuration"
-swift_binary_directory="$(swift build --package-path "$project_root/macos" --configuration "$build_configuration" --show-bin-path)"
+# Keep source locations in the released executable independent of the builder's
+# account and checkout path. Both debug records and #filePath literals need maps.
+swift_build_args=(
+  --package-path "$project_root/macos"
+  --configuration "$build_configuration"
+  -Xswiftc -debug-prefix-map -Xswiftc "$project_root=/src/jungo"
+  -Xswiftc -file-prefix-map -Xswiftc "$project_root=/src/jungo"
+  -Xswiftc -debug-prefix-map -Xswiftc "$HOME=/src/builder"
+  -Xswiftc -file-prefix-map -Xswiftc "$HOME=/src/builder"
+)
+swift build "${swift_build_args[@]}"
+swift_binary_directory="$(swift build "${swift_build_args[@]}" --show-bin-path)"
 swift_binary="$swift_binary_directory/JunGoMenu"
 if [[ ! -x "$swift_binary" ]]; then
   echo "Swift 构建没有生成 JunGoMenu 可执行文件。" >&2
@@ -49,6 +59,18 @@ app_bundle="$package_work/军哥互联.app"
 mkdir -p "$app_bundle/Contents/MacOS" "$app_bundle/Contents/Resources"
 install -m 755 "$swift_binary" "$app_bundle/Contents/MacOS/JunGoMenu"
 install -m 755 "$agent_binary" "$app_bundle/Contents/MacOS/jungo"
+# ld records the original object-file paths as debug symbols even when Swift
+# remaps source paths. Remove those symbols before signing the release bundle.
+strip -S "$app_bundle/Contents/MacOS/JunGoMenu"
+python3 - "$app_bundle/Contents/MacOS/JunGoMenu" "$app_bundle/Contents/MacOS/jungo" "$project_root" "$HOME" <<'PY'
+from pathlib import Path
+import sys
+
+for executable in sys.argv[1:3]:
+    data = Path(executable).read_bytes()
+    if any(path.encode() in data for path in sys.argv[3:]):
+        raise SystemExit('Release executable contains the builder home or checkout path')
+PY
 install -m 644 "$project_root/THIRD_PARTY_NOTICES.md" "$app_bundle/Contents/Resources/THIRD_PARTY_NOTICES.md"
 COPYFILE_DISABLE=1 cp -R "$project_root/licenses" "$app_bundle/Contents/Resources/licenses"
 chmod -R u+rwX "$app_bundle/Contents/Resources/licenses"
@@ -73,8 +95,8 @@ cat > "$app_bundle/Contents/Info.plist" <<'PLIST'
     <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>CFBundleIdentifier</key><string>com.junge.connect.mac</string>
     <key>CFBundlePackageType</key><string>APPL</string>
-    <key>CFBundleShortVersionString</key><string>0.2.2</string>
-    <key>CFBundleVersion</key><string>4</string>
+    <key>CFBundleShortVersionString</key><string>0.2.3</string>
+    <key>CFBundleVersion</key><string>5</string>
     <key>LSMinimumSystemVersion</key><string>13.0</string>
     <key>LSUIElement</key><true/>
     <key>LSMultipleInstancesProhibited</key><true/>
@@ -110,7 +132,7 @@ if [[ "${JUNGO_CREATE_DMG:-1}" == "1" ]]; then
   xattr -cr "$dmg_staging/军哥互联.app"
   codesign --verify --deep --strict "$dmg_staging/军哥互联.app"
   ln -s /Applications "$dmg_staging/Applications"
-  dmg_path="$dist_directory/军哥互联-0.2.2-$(uname -m).dmg"
+  dmg_path="$dist_directory/军哥互联-0.2.3-preview-$(uname -m).dmg"
   hdiutil create -volname "军哥互联" -srcfolder "$dmg_staging" -ov -format UDZO "$dmg_path"
   echo "安装镜像：$dmg_path"
 fi

@@ -254,6 +254,10 @@ final class AppStore: ObservableObject {
         _ = await perform("network", params: ["mesh": enabled, "proxy": false])
     }
 
+    func renameDevice(_ name: String) async -> Bool {
+        return await perform("renameDevice", params: ["name": name.trimmingCharacters(in: .whitespacesAndNewlines)])
+    }
+
     func pair(server: String, fingerprint: String, serviceID: String, code: String, name: String) async -> Bool {
         let server = server.trimmingCharacters(in: .whitespacesAndNewlines)
         let fingerprint = fingerprint.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()

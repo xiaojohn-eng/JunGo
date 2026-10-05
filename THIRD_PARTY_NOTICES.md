@@ -23,24 +23,16 @@ release source archives include this directory.
 
 The Samsung product names and dimensional specifications are used to identify an adaptation target. The app is not affiliated with Samsung or Apple. Native interfaces are implemented in Kotlin/Compose and SwiftUI. Personal design drafts and device screenshots are not part of this public source snapshot.
 
-## Dependency license review before binary redistribution
+## Release dependency scope
 
-This public repository provides source and build instructions. It does not publish
-the existing personal APK, macOS application, or server binary. The inventory is
-a record of upstream notices, not a claim that every possible combined build has
-completed a legal compatibility review.
-
-The pinned `github.com/rasky/go-lzo` dependency at commit
-`96a758eda86e0ca29bc2638000fdb0ff0a6d96d8` is pulled in through
-`mihomo/adapter/outbound` → `mihomo/transport/openvpn`. Its
-[upstream README](https://github.com/rasky/go-lzo/blob/96a758eda86e0ca29bc2638000fdb0ff0a6d96d8/README.md)
-identifies GPLv2, and its
-[license file](https://github.com/rasky/go-lzo/blob/96a758eda86e0ca29bc2638000fdb0ff0a6d96d8/LICENSE.gpl)
-contains GPLv2. We have not verified an additional project-specific grant that
-permits GPLv3. Before redistributing a combined binary, resolve this licensing
-question with the upstream rights holders or replace/exclude the dependency
-and validate the resulting build. Merely adding the root GPLv3 license does not
-resolve this question.
+The GPLv2-only `github.com/rasky/go-lzo` module was removed from the 0.2.3
+build graph before binary distribution. OpenVPN profiles requesting `comp-lzo:
+yes` or `adaptive` are rejected during configuration, and an unexpected LZO
+compressed data packet is rejected. OpenVPN connections without LZO remain
+supported. This change is recorded in `third_party/mihomo/JUNGO-PATCHES.md`.
+The published Go binaries must be checked with `go version -m` to confirm that
+`github.com/rasky/go-lzo` is absent. The Go module notice inventory covers
+the current build; a new dependency update requires a new license review.
 
 The `github.com/metacubex/chacha` module has no root license file at this pinned
 version. Its available nested MIT notices are copied verbatim and listed in the

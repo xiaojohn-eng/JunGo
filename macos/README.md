@@ -24,9 +24,10 @@ swift build --package-path macos
 
 输出 `dist/军哥互联.app.zip`（内含已签名 `.app`）和当前架构的 `.dmg`。脚本只构建和签名，**不会启动应用、
 安装登录项或启动后台**。`JUNGO_BINARY` 可指定已构建的后台可执行文件；
-`JUNGO_CREATE_DMG=0` 仅生成 `.app.zip`。默认 ad-hoc 签名，只用于本机开发与验证；
-使用 `JUNGO_SIGN_IDENTITY` 选择本机已有的开发者签名身份。面向其他电脑发布时还
-需要独立完成 Developer ID 签名与 Apple 公证，脚本不会声称公证已经完成。
+`JUNGO_CREATE_DMG=0` 仅生成 `.app.zip`。默认使用 ad-hoc 签名；GitHub 预览包可按
+[下载与部署指南](../docs/download-install.md) 在自己的 Mac 上手动确认后运行。
+使用 `JUNGO_SIGN_IDENTITY` 可选择本机已有的开发者签名身份。正式分发仍需独立完成
+Developer ID 签名与 Apple 公证，脚本不会声称公证已经完成。
 
 签名与镜像制作在系统临时目录完成。Documents 等文件提供器目录可能在验证后给松散
 `.app` 再次回填不允许签名的 FinderInfo，因此始终交付已验证应用的 `.app.zip` 和 DMG，
@@ -67,6 +68,7 @@ Mac 连接指示使用 `meshRunning`；不把 Android 专用的 `vpnRunning` 当
 
 - `pair {server,fingerprint,serviceId?,code,name}`：HTTPS 地址和 64 位 SHA-256 指纹。
 - `network {mesh,proxy:false}`：Mac 仅显示组网开关。
+- `renameDevice {name}`：已配对设备用自身凭据更新控制服务中的显示名称，再同步本机状态；设备 ID、私网 IP 和稳定主机名不变。
 - `shareAdd {name,path,readOnly}`、`shareRemove {id}`。
 - `serviceAdd {port,network:"tcp",target:"127.0.0.1:PORT"}`、`serviceRemove {port}`。
 - `transferAction {id,action:pause|resume|cancel}`：只由明确的用户操作触发。

@@ -14,8 +14,8 @@ android {
         applicationId = "com.junge.connect"
         minSdk = 31
         targetSdk = 36
-        versionCode = 4
-        versionName = "0.2.2-performance-preview"
+        versionCode = 5
+        versionName = "0.2.3-preview"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk { abiFilters += "arm64-v8a" }
     }
@@ -80,3 +80,25 @@ val bundleThirdPartyNotices = tasks.register<Sync>("bundleThirdPartyNotices") {
 }
 android.sourceSets.getByName("main").assets.srcDir(layout.buildDirectory.dir("generated/notices"))
 tasks.named("preBuild").configure { dependsOn(bundleThirdPartyNotices) }
+
+// A release APK records the exact Git commit used for its Android resources.
+// Source archives without .git remain buildable and identify that provenance.
+val bundleReleaseCommit = tasks.register("bundleReleaseCommit") {
+    val outputDir = layout.buildDirectory.dir("generated/release-metadata")
+    outputs.dir(outputDir)
+    outputs.upToDateWhen { false }
+    doLast {
+        val revision = try {
+            val process = ProcessBuilder("git", "rev-parse", "HEAD")
+                .directory(rootDir.parentFile).start()
+            val value = process.inputStream.bufferedReader().readText().trim()
+            if (process.waitFor() == 0 && value.matches(Regex("[0-9a-f]{40}"))) value else "source-archive"
+        } catch (_: Exception) { "source-archive" }
+        outputDir.get().file("jungo-release-commit.txt").asFile.apply {
+            parentFile.mkdirs()
+            writeText("$revision\n")
+        }
+    }
+}
+android.sourceSets.getByName("main").assets.srcDir(layout.buildDirectory.dir("generated/release-metadata"))
+tasks.named("preBuild").configure { dependsOn(bundleReleaseCommit) }

@@ -78,6 +78,30 @@ func TestClientConfigDefaults(t *testing.T) {
 	}
 }
 
+func TestClientConfigRejectsLZOCompression(t *testing.T) {
+	for _, compLZO := range []string{"yes", "adaptive", " YES ", " Adaptive "} {
+		t.Run(compLZO, func(t *testing.T) {
+			cfg := yamlStyleConfig()
+			cfg.CompLZO = compLZO
+			if err := cfg.Prepare(); err == nil || !strings.Contains(err.Error(), "LZO compression is unavailable") {
+				t.Fatalf("comp-lzo %q should fail during preparation: %v", compLZO, err)
+			}
+		})
+	}
+}
+
+func TestClientConfigAllowsNoLZOCompression(t *testing.T) {
+	for _, compLZO := range []string{"", "no", " NO "} {
+		t.Run(compLZO, func(t *testing.T) {
+			cfg := yamlStyleConfig()
+			cfg.CompLZO = compLZO
+			if err := cfg.Prepare(); err != nil {
+				t.Fatalf("comp-lzo %q should be accepted: %v", compLZO, err)
+			}
+		})
+	}
+}
+
 func TestClientConfigRejectsUnsupportedProto(t *testing.T) {
 	cfg := yamlStyleConfig()
 	cfg.Proto = "tcp-server"

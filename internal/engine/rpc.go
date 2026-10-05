@@ -4,12 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/xiaojohn-eng/JunGo/internal/control"
 	"github.com/xiaojohn-eng/JunGo/internal/files"
@@ -139,6 +142,35 @@ func (e *Engine) Request(raw string) (string, error) {
 		}
 		if err := e.pair(p); err != nil {
 			return "", err
+		}
+	case "renameDevice":
+		var p struct {
+			Name string `json:"name"`
+		}
+		if err := decode(request.Params, &p); err != nil {
+			return "", err
+		}
+		if p.Name == "" || len(p.Name) > 128 || !utf8.ValidString(p.Name) || strings.TrimSpace(p.Name) != p.Name || strings.IndexFunc(p.Name, func(r rune) bool { return unicode.Is(unicode.C, r) || (unicode.IsSpace(r) && r != ' ') }) >= 0 {
+			return "", errors.New("设备名称须为 1–128 字节，不能包含前后空白、控制字符或特殊空格")
+		}
+		if c.Token == "" || c.Device.ID == "" {
+			return "", errors.New("请先配对设备")
+		}
+		client, err := e.controlClient(c)
+		if err != nil {
+			return "", err
+		}
+		defer client.CloseIdleConnections()
+		var updated control.Device
+		if err := apiDo(e.ctx, client, c.Server, c.Token, "POST", "/v1/device/name", map[string]string{"name": p.Name}, &updated); err != nil {
+			return "", err
+		}
+		if updated.ID != c.Device.ID || updated.Name != p.Name {
+			return "", errors.New("控制服务返回的设备身份或名称不匹配")
+		}
+		c.Device.Name = updated.Name
+		if err := e.commit(c); err != nil {
+			return "", fmt.Errorf("控制服务已更新名称，但本机保存失败；连接恢复后会重新同步：%w", err)
 		}
 	case "network":
 		old := c
